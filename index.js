@@ -1,7 +1,7 @@
 // https://www.freecodecamp.org/news/build-a-secure-server-with-node-and-express/
 const http = require("http");
 const app = require("./service");
-const getEndpoints = require("./helpers/paths");
+const getEndpoints = require("./src/helpers/paths");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
