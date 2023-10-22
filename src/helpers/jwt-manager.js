@@ -1,44 +1,57 @@
 const jwt = require("jsonwebtoken");
-const secret = "U@QwzN2UNtMp2Hf4+6UC"
-const access_token_expiry_time = process.env.ACCESS_TOKEN_EXPIRY_TIME
-class JwtManager {
+const crypto = require("node:crypto");
+
+class TokenService {
   constructor() {
-    this.jwtSecret = secret;
-    this.accessTokenExpiry = access_token_expiry_time;
-    this.refreshTokenExpiryTime;
+    this.secretKey = "Y,%c9G&``!Q~`k#";
+    this.key = crypto.randomBytes(16);
+    this.iv = Buffer.from(this.secretKey);
+    this.accessTokenExpiryTime = "3600s";
+    this.refreshTokenExpiryTime = "2592000s"; // 1 month in seconds
   }
-  generateToken(user, tokenExpiryTime) {
-    return new Promise((resolve, reject) => {
-      const tokenPayload = { userId: user._id };
-      //create a 1 hour expiry time for the JWT
-      var expiresIn = "3600s";
-      try {
-        let signedJwt = jwt.sign({ payload: tokenPayload }, this.jwtSecret, { expiresIn });
-        resolve({ status: 200, message: "JWT generated successfully", data: { accessToken: signedJwt } });
-        resolve(signedJwt);
-      } catch (e) {
-        reject("Error while generating token");
-      }
-    });
+  encrypt(payload) {
+    const cipher = crypto.createCipheriv("aes-128-ocb", this.key, this.iv, { authTagLength: 16 });
+    let encryptedPayload = cipher.update(JSON.stringify(payload), "utf8", "base64");
+    encryptedPayload += cipher.final("base64");
+    return {payload: encryptedPayload};
   }
+
+  decrypt(encryptedPayload) {
+    const decipher = crypto.createDecipheriv("aes-128-ocb", this.key, this.iv, { authTagLength: 16 });
+    let decryptedPayload = decipher.update(encryptedPayload, "base64", "utf8");
+    decryptedPayload += decipher.final("utf8");
+    return JSON.parse(decryptedPayload);
+  }
+
+  generateAccessToken(payload) {
+    return jwt.sign(this.encrypt(payload), this.secretKey, { expiresIn: this.accessTokenExpiryTime });
+  }
+
+  generateRefreshToken(payload) {
+    return jwt.sign(payload, this.secretKey, { expiresIn: this.refreshTokenExpiryTime });
+  }
+
   verifyToken(token) {
-    return new Promise((resolve, reject) => {
-      if (!token || !this.isValid(token)) reject("Invalid Token");
-      else {
-        console.log(`verifying ${token}`);
-        jwt.verify(token, "<PASSWORD>", function (err, decodedData) {
-          if (err) reject(err);
-          resolve({ status: "success", message: "verified" });
-        });
-      }
-    });
+    try {
+      return jwt.verify(token, this.secretKey);
+    } catch (error) {
+      return null;
+    }
   }
 }
+const tokenService = new TokenService();
 
-module.exports = new JwtManager();
+// Generate an access token
+const accessToken = tokenService.generateAccessToken({ userId: 123, username: "example_user" });
+console.log("Access Token:", accessToken);
 
-module.exports.generateToken = (payload) => {
-  const token = jwt.sign({ user_id: user._id, email }, process.env.TOKEN_KEY, {
-    expiresIn: "2h",
-  });
-};
+// Generate a refresh token
+// const refreshToken = tokenService.generateRefreshToken({ userId: 123 }, "7d");
+// console.log("Refresh Token:", refreshToken);
+
+// Verify and decode tokens
+const decodedAccessToken = tokenService.verifyToken(accessToken);
+// const decodedRefreshToken = tokenService.verifyToken(refreshToken);
+
+console.log("Decoded Access Token:", decodedAccessToken);
+// console.log("Decoded Refresh Token:", decodedRefreshToken);
