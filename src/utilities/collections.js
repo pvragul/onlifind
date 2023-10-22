@@ -16,7 +16,7 @@ class Database {
         Object.keys(modelMapper).map((model) => {
           this.collections[model] = require(`../schemas/${modelMapper[model]}`)(this.mongoose);
         });
-      } catch (error) {
+      } catch (err) {
         console.log(error.message);
       }
     }

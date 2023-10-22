@@ -9,7 +9,7 @@ module.exports = async (collections, req) => {
     }
     let newUser = await collections.users.create(body);
     return {
-      statusCode: 201,
+      status: 201,
       body: {
         _id: newUser?._id,
       },
@@ -17,7 +17,7 @@ module.exports = async (collections, req) => {
   } catch (err) {
     console.log("Error occurred", err);
     return {
-      statusCode: 400,
+      status: 400,
       body: {
         code: 1000,
         message: err.message,
